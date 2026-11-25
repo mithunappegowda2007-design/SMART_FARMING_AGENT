@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block title %}Market Insights — SmartFarm AI{% endblock %}
+{% block topbar_title %}📈 Market Insights Agent{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h2>Market Insights & Price Forecasting</h2>
+  <p>AI-powered market price forecasts, selling strategy, and income optimization for your produce.</p>
+</div>
+
+<div class="two-col-layout">
+  <div class="card form-card">
+    <h3 class="card-title">🌾 Produce Details</h3>
+    <div class="form-group">
+      <label class="form-label">Crop *</label>
+      <input type="text" id="m_crop" class="form-input" placeholder="e.g. Wheat, Rice, Tomato, Cotton, Onion">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Quantity (kg)</label>
+        <input type="number" id="m_quantity" class="form-input" placeholder="e.g. 5000" min="1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Expected Harvest Month</label>
+        <select id="m_month" class="form-input">
+          <option>January</option><option>February</option><option>March</option>
+          <option>April</option><option>May</option><option>June</option>
+          <option>July</option><option>August</option><option>September</option>
+          <option>October</option><option selected>November</option><option>December</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Location / State</label>
+      <input type="text" id="m_location" class="form-input" placeholder="e.g. Punjab, Uttar Pradesh">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Farming Cost So Far (₹/ha, optional)</label>
+      <input type="number" id="m_cost" class="form-input" placeholder="e.g. 25000" min="0">
+    </div>
+    <button class="btn btn-primary btn-full" onclick="getMarketInsights()" id="marketBtn">
+      📈 Get Market Insights
+    </button>
+  </div>
+
+  <div class="card result-card" id="marketResults" style="display:none">
+    <h3 class="card-title">💰 Market Intelligence Report</h3>
+    <div id="marketResultsContent"></div>
+  </div>
+</div>
+
+<div class="loading-overlay" id="marketLoading" style="display:none">
+  <div class="loading-card">
+    <div class="spinner"></div>
+    <div>📊 Analyzing market trends and generating price forecast...</div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+async function getMarketInsights() {
+  const crop = document.getElementById('m_crop').value.trim();
+  if (!crop) { alert('Please enter a crop name'); return; }
+
+  document.getElementById('marketLoading').style.display = 'flex';
+  document.getElementById('marketBtn').disabled = true;
+
+  const payload = {
+    crop,
+    quantity_kg: parseFloat(document.getElementById('m_quantity').value) || 1000,
+    location: document.getElementById('m_location').value.trim() || 'India',
+    harvest_month: document.getElementById('m_month').value,
+    farming_cost: document.getElementById('m_cost').value ? parseFloat(document.getElementById('m_cost').value) : null,
+  };
+
+  try {
+    const res = await fetch('/api/market-insights', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    document.getElementById('marketLoading').style.display = 'none';
+    document.getElementById('marketBtn').disabled = false;
+    if (json.success) {
+      renderMarket(json.data, payload);
+    } else {
+      showMarketError(json.error);
+    }
+  } catch (e) {
+    document.getElementById('marketLoading').style.display = 'none';
+    document.getElementById('marketBtn').disabled = false;
+    showMarketError(e.message);
+  }
+}
+
+function renderMarket(data, payload) {
+  if (data.raw) {
+    document.getElementById('marketResultsContent').innerHTML = `<div class="prose">${escHtml(data.selling_strategy||'').replace(/\n/g,'<br>')}</div>`;
+  } else {
+    const cp = data.current_price_estimate || {};
+    const fh = data.forecast_at_harvest || {};
+    const trendIcon = { rising: '📈', stable: '➡️', falling: '📉' }[cp.trend] || '📊';
+
+    document.getElementById('marketResultsContent').innerHTML = `
+      <!-- Price Cards -->
+      <div class="price-cards-row">
+        <div class="price-card current">
+          <div class="price-label">Current Price Range</div>
+          <div class="price-value">₹${cp.min_rs_per_quintal || '—'}–₹${cp.max_rs_per_quintal || '—'}</div>
+          <div class="price-unit">per quintal ${trendIcon} ${escHtml(cp.trend||'')}</div>
+        </div>
+        <div class="price-card forecast">
+          <div class="price-label">Harvest Time Forecast</div>
+          <div class="price-value">₹${fh.expected_price_rs_per_quintal || '—'}</div>
+          <div class="price-unit">per quintal (${escHtml(payload.harvest_month)})</div>
+        </div>
+        ${data.profit_estimate ? `
+        <div class="price-card profit">
+          <div class="price-label">Estimated Profit</div>
+          <div class="price-value">💰</div>
+          <div class="price-unit">${escHtml(data.profit_estimate)}</div>
+        </div>` : ''}
+      </div>
+
+      ${fh.market_outlook ? `<div class="result-summary-box">📊 <strong>Market Outlook:</strong> ${escHtml(fh.market_outlook)}</div>` : ''}
+
+      ${data.selling_strategy ? `
+      <div class="result-item wide">
+        <div class="result-icon">💡</div>
+        <div class="result-label">Selling Strategy</div>
+        <div class="result-value">${escHtml(data.selling_strategy)}</div>
+      </div>` : ''}
+
+      <div class="market-grid">
+        ${data.best_markets && data.best_markets.length ? `
+        <div class="market-section">
+          <h4>🏪 Best Market Channels</h4>
+          <ul>${data.best_markets.map(m=>`<li>${escHtml(m)}</li>`).join('')}</ul>
+        </div>` : ''}
+        ${data.value_addition_options && data.value_addition_options.length ? `
+        <div class="market-section">
+          <h4>✨ Value Addition Options</h4>
+          <ul>${data.value_addition_options.map(v=>`<li>${escHtml(v)}</li>`).join('')}</ul>
+        </div>` : ''}
+        ${data.cost_optimization && data.cost_optimization.length ? `
+        <div class="market-section">
+          <h4>💰 Cost Optimization</h4>
+          <ul>${data.cost_optimization.map(c=>`<li>${escHtml(c)}</li>`).join('')}</ul>
+        </div>` : ''}
+        ${data.government_schemes && data.government_schemes.length ? `
+        <div class="market-section">
+          <h4>🏛️ Government Schemes</h4>
+          <ul>${data.government_schemes.map(s=>`<li>${escHtml(s)}</li>`).join('')}</ul>
+        </div>` : ''}
+      </div>
+
+      ${data.risk_factors && data.risk_factors.length ? `
+      <div class="warnings-box">
+        <h4>⚠️ Market Risks</h4>
+        <ul>${data.risk_factors.map(r=>`<li>${escHtml(r)}</li>`).join('')}</ul>
+      </div>` : ''}`;
+  }
+  document.getElementById('marketResults').style.display = 'block';
+  document.getElementById('marketResults').scrollIntoView({ behavior: 'smooth' });
+}
+
+function showMarketError(msg) {
+  document.getElementById('marketResultsContent').innerHTML = `<div class="error-box">❌ ${escHtml(msg)}</div>`;
+  document.getElementById('marketResults').style.display = 'block';
+}
+
+function escHtml(str) {
+  if (typeof str !== 'string') str = String(str || '');
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — SmartFarm AI{% endblock %}
+{% block topbar_title %}📊 Farm Intelligence Dashboard{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h2>Multi-Agent Farm Intelligence Dashboard</h2>
+  <p>Run all 4 AI agents simultaneously for a comprehensive farm intelligence report.</p>
+</div>
+
+<!-- Dashboard Config -->
+<div class="card dashboard-config">
+  <h3 class="card-title">⚙️ Farm Configuration</h3>
+  <div class="config-grid">
+    <div class="form-group">
+      <label class="form-label">Crop *</label>
+      <input type="text" id="d_crop" class="form-input" placeholder="e.g. Rice, Wheat, Tomato" value="Wheat">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Location *</label>
+      <input type="text" id="d_location" class="form-input" placeholder="e.g. Punjab, Maharashtra" value="Punjab">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Soil Type</label>
+      <select id="d_soil" class="form-input">
+        <option value="loamy" selected>Loamy</option>
+        <option value="clay">Clay</option>
+        <option value="sandy">Sandy</option>
+        <option value="black cotton">Black Cotton</option>
+        <option value="alluvial">Alluvial</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Season</label>
+      <select id="d_season" class="form-input">
+        <option value="Kharif">Kharif</option>
+        <option value="Rabi" selected>Rabi</option>
+        <option value="Zaid">Zaid</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Growth Stage</label>
+      <select id="d_stage" class="form-input">
+        <option value="germination">Germination</option>
+        <option value="vegetative" selected>Vegetative</option>
+        <option value="flowering">Flowering</option>
+        <option value="grain filling">Grain Filling</option>
+        <option value="maturity">Maturity</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Harvest Month</label>
+      <select id="d_month" class="form-input">
+        <option>January</option><option>February</option><option>March</option>
+        <option>April</option><option selected>April</option><option>May</option>
+        <option>June</option><option>July</option><option>August</option>
+        <option>September</option><option>October</option><option>November</option><option>December</option>
+      </select>
+    </div>
+  </div>
+  <button class="btn btn-primary" onclick="runDashboard()" id="dashBtn" style="margin-top:1rem">
+    🚀 Run All 4 Agents — Full Analysis
+  </button>
+</div>
+
+<!-- Agent Status Bar -->
+<div class="agent-status-bar" id="agentStatusBar" style="display:none">
+  <div class="agent-status-item" id="as_crop">
+    <div class="as-icon">🌾</div><div class="as-name">Crop Agent</div><div class="as-status">waiting...</div>
+  </div>
+  <div class="agent-status-item" id="as_weather">
+    <div class="as-icon">🌤️</div><div class="as-name">Weather Agent</div><div class="as-status">waiting...</div>
+  </div>
+  <div class="agent-status-item" id="as_market">
+    <div class="as-icon">📈</div><div class="as-name">Market Agent</div><div class="as-status">waiting...</div>
+  </div>
+</div>
+
+<!-- Results Grid -->
+<div class="dashboard-results" id="dashboardResults" style="display:none">
+
+  <!-- Crop Advisory -->
+  <div class="card dash-card" id="dash_crop_card">
+    <div class="dash-card-header">
+      <span class="dash-card-icon">🌾</span>
+      <h3>Crop Advisory</h3>
+      <span class="agent-badge">RAG + LLM</span>
+    </div>
+    <div id="dash_crop"></div>
+  </div>
+
+  <!-- Weather -->
+  <div class="card dash-card" id="dash_weather_card">
+    <div class="dash-card-header">
+      <span class="dash-card-icon">🌤️</span>
+      <h3>Weather & Irrigation</h3>
+      <span class="agent-badge live">Live</span>
+    </div>
+    <div id="dash_weather"></div>
+  </div>
+
+  <!-- Market -->
+  <div class="card dash-card" id="dash_market_card">
+    <div class="dash-card-header">
+      <span class="dash-card-icon">📈</span>
+      <h3>Market Insights</h3>
+      <span class="agent-badge">AI Forecast</span>
+    </div>
+    <div id="dash_market"></div>
+  </div>
+
+  <!-- Weather Forecast Bar -->
+  <div class="card dash-card full-width" id="dash_forecast_card">
+    <div class="dash-card-header">
+      <span class="dash-card-icon">📅</span>
+      <h3>5-Day Weather Forecast</h3>
+    </div>
+    <div class="forecast-row" id="dash_forecast"></div>
+  </div>
+</div>
+
+<div class="loading-overlay" id="dashLoading" style="display:none">
+  <div class="loading-card">
+    <div class="spinner"></div>
+    <div id="dashLoadingText">🤖 Orchestrating AI agents...</div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+async function runDashboard() {
+  const crop = document.getElementById('d_crop').value.trim();
+  const location = document.getElementById('d_location').value.trim();
+  if (!crop || !location) { alert('Please enter crop and location'); return; }
+
+  document.getElementById('dashLoading').style.display = 'flex';
+  document.getElementById('dashBtn').disabled = true;
+  document.getElementById('agentStatusBar').style.display = 'none';
+  document.getElementById('dashboardResults').style.display = 'none';
+
+  const msgs = [
+    '🌾 Running Crop Advisory Agent...',
+    '🌤️ Fetching weather data...',
+    '📈 Analyzing market trends...',
+    '🤖 Synthesizing multi-agent insights...'
+  ];
+  let msgIdx = 0;
+  const msgEl = document.getElementById('dashLoadingText');
+  const msgInterval = setInterval(() => {
+    msgEl.textContent = msgs[msgIdx % msgs.length];
+    msgIdx++;
+  }, 1500);
+
+  const payload = {
+    crop,
+    location,
+    soil_type: document.getElementById('d_soil').value,
+    season: document.getElementById('d_season').value,
+    growth_stage: document.getElementById('d_stage').value,
+    harvest_month: document.getElementById('d_month').value,
+    quantity_kg: 1000,
+  };
+
+  try {
+    const res = await fetch('/api/multi-agent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    clearInterval(msgInterval);
+    document.getElementById('dashLoading').style.display = 'none';
+    document.getElementById('dashBtn').disabled = false;
+    if (json.success) {
+      renderDashboard(json.data);
+    } else {
+      alert('Error: ' + json.error);
+    }
+  } catch (e) {
+    clearInterval(msgInterval);
+    document.getElementById('dashLoading').style.display = 'none';
+    document.getElementById('dashBtn').disabled = false;
+    alert('Error: ' + e.message);
+  }
+}
+
+function renderDashboard(data) {
+  // Crop
+  const ca = data.crop_advisory;
+  const cropDiv = document.getElementById('dash_crop');
+  if (ca && !ca.raw) {
+    cropDiv.innerHTML = `
+      ${ca.summary ? `<p class="dash-summary">${escHtml(ca.summary)}</p>` : ''}
+      <div class="dash-info-list">
+        ${ca.seed_recommendation ? `<div class="dash-info"><strong>🌱 Seeds:</strong> ${escHtml(ca.seed_recommendation)}</div>` : ''}
+        ${ca.fertilizer_schedule ? `<div class="dash-info"><strong>🧪 Fertilizer:</strong> ${escHtml(ca.fertilizer_schedule)}</div>` : ''}
+        ${ca.irrigation_plan ? `<div class="dash-info"><strong>💧 Irrigation:</strong> ${escHtml(ca.irrigation_plan)}</div>` : ''}
+        ${ca.harvesting_timeline ? `<div class="dash-info"><strong>⏱️ Harvest:</strong> ${escHtml(ca.harvesting_timeline)}</div>` : ''}
+      </div>
+      ${ca.tips ? `<ul class="dash-tips">${ca.tips.slice(0,3).map(t=>`<li>${escHtml(t)}</li>`).join('')}</ul>` : ''}`;
+  } else {
+    cropDiv.innerHTML = `<div class="prose">${escHtml(JSON.stringify(ca,null,2)).replace(/\n/g,'<br>')}</div>`;
+  }
+
+  // Weather
+  const wi = data.weather_irrigation;
+  const wd = data.weather_data;
+  const weatherDiv = document.getElementById('dash_weather');
+  let weatherHtml = '';
+  if (wd && wd.current) {
+    const c = wd.current;
+    weatherHtml += `
+      <div class="dash-weather-row">
+        <div class="dash-weather-main"><span class="dash-temp">${c.temperature}°C</span> <span class="dash-desc">${c.description}</span></div>
+        <div class="dash-weather-stats">
+          <span>💧 ${c.humidity}%</span>
+          <span>💨 ${(c.wind_speed*3.6).toFixed(1)} km/h</span>
+        </div>
+      </div>`;
+  }
+  if (wi && !wi.raw) {
+    const ir = wi.irrigation_recommendation || {};
+    weatherHtml += `
+      ${wi.weather_summary ? `<p class="dash-summary">${escHtml(wi.weather_summary)}</p>` : ''}
+      <div class="dash-info-list">
+        ${ir.next_irrigation_date ? `<div class="dash-info"><strong>📅 Next Irrigation:</strong> ${escHtml(ir.next_irrigation_date)}</div>` : ''}
+        ${ir.water_amount_mm ? `<div class="dash-info"><strong>💧 Amount:</strong> ${ir.water_amount_mm} mm via ${escHtml(ir.method||'')}</div>` : ''}
+      </div>
+      ${wi.risk_alerts && wi.risk_alerts.length ? `<div class="dash-warning">⚠️ ${escHtml(wi.risk_alerts[0])}</div>` : ''}`;
+  }
+  weatherDiv.innerHTML = weatherHtml;
+
+  // Market
+  const mi = data.market_insights;
+  const marketDiv = document.getElementById('dash_market');
+  if (mi && !mi.raw) {
+    const cp = mi.current_price_estimate || {};
+    const fh = mi.forecast_at_harvest || {};
+    marketDiv.innerHTML = `
+      <div class="dash-price-row">
+        <div class="dash-price"><span>₹${cp.min_rs_per_quintal||'—'}–₹${cp.max_rs_per_quintal||'—'}</span><small>Current/qtl</small></div>
+        <div class="dash-price forecast"><span>₹${fh.expected_price_rs_per_quintal||'—'}</span><small>At Harvest</small></div>
+      </div>
+      ${mi.selling_strategy ? `<div class="dash-info"><strong>💡 Strategy:</strong> ${escHtml(mi.selling_strategy)}</div>` : ''}
+      ${mi.profit_estimate ? `<div class="dash-summary">${escHtml(mi.profit_estimate)}</div>` : ''}`;
+  } else {
+    marketDiv.innerHTML = `<div class="prose">${escHtml(JSON.stringify(mi,null,2)).replace(/\n/g,'<br>')}</div>`;
+  }
+
+  // Forecast
+  const forecastRow = document.getElementById('dash_forecast');
+  forecastRow.innerHTML = '';
+  const icons = { sunny:'☀️', clear:'🌙', rain:'🌧️', cloud:'☁️', drizzle:'🌦️', storm:'⛈️', snow:'❄️', mist:'🌫️' };
+  ((wd && wd.forecast) || []).forEach(day => {
+    const wd2 = day.description.toLowerCase();
+    let icon = '🌤️';
+    for (const [k,v] of Object.entries(icons)) { if (wd2.includes(k)) { icon = v; break; } }
+    forecastRow.innerHTML += `
+      <div class="forecast-day">
+        <div class="fc-date">${day.date.slice(5)}</div>
+        <div class="fc-icon">${icon}</div>
+        <div class="fc-temp">${day.temp_max}° / ${day.temp_min}°</div>
+        <div class="fc-rain">${day.rain_mm > 0 ? '🌧️ ' + day.rain_mm + 'mm' : '—'}</div>
+        <div class="fc-desc">${day.description}</div>
+      </div>`;
+  });
+
+  document.getElementById('dashboardResults').style.display = 'grid';
+  document.getElementById('dashboardResults').scrollIntoView({ behavior: 'smooth' });
+}
+
+function escHtml(str) {
+  if (typeof str !== 'string') str = String(str || '');
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+{% endblock %}

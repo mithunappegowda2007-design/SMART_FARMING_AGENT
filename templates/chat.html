@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% block title %}AI Chat Agent — SmartFarm AI{% endblock %}
+{% block topbar_title %}🤖 AI Farming Chat Agent{% endblock %}
+{% block content %}
+
+<div class="chat-wrapper">
+  <!-- Sidebar Context Panel -->
+  <div class="chat-context-panel">
+    <h3>🎯 Farm Context</h3>
+    <p class="context-hint">Set your farm details for more personalized advice</p>
+    <div class="context-form">
+      <div class="form-group">
+        <label>Crop</label>
+        <input type="text" id="ctx_crop" placeholder="e.g. Rice, Wheat, Tomato" class="form-input">
+      </div>
+      <div class="form-group">
+        <label>Location</label>
+        <input type="text" id="ctx_location" placeholder="e.g. Punjab, Maharashtra" class="form-input">
+      </div>
+      <div class="form-group">
+        <label>Soil Type</label>
+        <select id="ctx_soil" class="form-input">
+          <option value="loamy">Loamy</option>
+          <option value="clay">Clay</option>
+          <option value="sandy">Sandy</option>
+          <option value="black cotton">Black Cotton</option>
+          <option value="red laterite">Red Laterite</option>
+          <option value="alluvial">Alluvial</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Season</label>
+        <select id="ctx_season" class="form-input">
+          <option value="Kharif">Kharif (June-Nov)</option>
+          <option value="Rabi">Rabi (Nov-Apr)</option>
+          <option value="Zaid">Zaid (Mar-Jun)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Growth Stage</label>
+        <select id="ctx_stage" class="form-input">
+          <option value="vegetative">Vegetative</option>
+          <option value="germination">Germination</option>
+          <option value="flowering">Flowering</option>
+          <option value="grain filling">Grain Filling</option>
+          <option value="maturity">Maturity</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="quick-queries">
+      <h4>💡 Quick Queries</h4>
+      <button class="quick-btn" onclick="sendQuick('What fertilizer should I use for rice in black soil?')">Rice fertilizer for black soil</button>
+      <button class="quick-btn" onclick="sendQuick('My tomato leaves are turning yellow with brown spots')">Tomato leaf symptoms</button>
+      <button class="quick-btn" onclick="sendQuick('When should I irrigate wheat after sowing?')">Wheat irrigation schedule</button>
+      <button class="quick-btn" onclick="sendQuick('What is the best time to sell wheat for maximum price?')">Wheat selling strategy</button>
+      <button class="quick-btn" onclick="sendQuick('How to prevent pest infestation in cotton crop?')">Cotton pest prevention</button>
+      <button class="quick-btn" onclick="sendQuick('What government schemes are available for organic farming?')">Govt organic schemes</button>
+    </div>
+  </div>
+
+  <!-- Chat Area -->
+  <div class="chat-main">
+    <div class="chat-messages" id="chatMessages">
+      <div class="message agent-message">
+        <div class="message-avatar">🌱</div>
+        <div class="message-content">
+          <div class="message-header"><strong>SmartFarm AI Agent</strong> <span class="message-time">Just now</span></div>
+          <div class="message-text">
+            <p>Hello! I'm your Smart Farming AI Agent powered by Groq LLM. I have <strong>4 specialized sub-agents</strong> ready to help:</p>
+            <ul>
+              <li>🌾 <strong>Crop Advisory</strong> — seed selection, fertilizers, harvest timelines</li>
+              <li>🌤️ <strong>Weather & Irrigation</strong> — weather analysis, irrigation scheduling</li>
+              <li>🔬 <strong>Pest Detection</strong> — disease diagnosis, treatment recommendations</li>
+              <li>📈 <strong>Market Insights</strong> — price forecasts, selling strategy</li>
+            </ul>
+            <p>Set your farm context on the left and ask me anything! 🧑‍🌾</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="chat-input-area">
+      <div class="typing-indicator" id="typingIndicator" style="display:none">
+        <span>AI agents are thinking</span><span class="dots"><span>.</span><span>.</span><span>.</span></span>
+      </div>
+      <div class="chat-input-row">
+        <textarea 
+          id="chatInput" 
+          class="chat-textarea" 
+          placeholder="Ask anything about farming — crops, pests, weather, market prices..." 
+          rows="2"
+          onkeydown="handleChatKey(event)"
+        ></textarea>
+        <button class="send-btn" onclick="sendMessage()" id="sendBtn">
+          <span>Send</span> <span>➤</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+let conversationHistory = [];
+
+function getContext() {
+  return {
+    crop: document.getElementById('ctx_crop').value.trim() || undefined,
+    location: document.getElementById('ctx_location').value.trim() || undefined,
+    soil_type: document.getElementById('ctx_soil').value,
+    season: document.getElementById('ctx_season').value,
+    growth_stage: document.getElementById('ctx_stage').value,
+  };
+}
+
+function sendQuick(text) {
+  document.getElementById('chatInput').value = text;
+  sendMessage();
+}
+
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  input.value = '';
+  appendMessage('user', msg);
+  showTyping(true);
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, context: getContext() })
+    });
+    const json = await res.json();
+    showTyping(false);
+    if (json.success) {
+      renderAgentResponse(json.data);
+    } else {
+      appendMessage('agent', '⚠️ Error: ' + (json.error || 'Unknown error'));
+    }
+  } catch (err) {
+    showTyping(false);
+    appendMessage('agent', '⚠️ Connection error. Please check your API key and try again.');
+  }
+}
+
+function renderAgentResponse(data) {
+  const agents = data.agents_used || [];
+  let html = '';
+
+  if (data.executive_summary) {
+    html += `<div class="response-summary"><strong>📋 Summary:</strong> ${escHtml(data.executive_summary)}</div>`;
+  }
+
+  if (data.general_advice) {
+    html += `<div class="response-block">${escHtml(data.general_advice).replace(/\n/g,'<br>')}</div>`;
+  }
+
+  if (data.crop_advisory && !data.crop_advisory.raw) {
+    const ca = data.crop_advisory;
+    html += `<div class="response-block agent-block">
+      <div class="agent-block-header">🌾 Crop Advisory Agent</div>
+      ${ca.summary ? `<p>${escHtml(ca.summary)}</p>` : ''}
+      ${ca.seed_recommendation ? `<div class="info-row"><strong>🌱 Seeds:</strong> ${escHtml(ca.seed_recommendation)}</div>` : ''}
+      ${ca.fertilizer_schedule ? `<div class="info-row"><strong>🧪 Fertilizer:</strong> ${escHtml(ca.fertilizer_schedule)}</div>` : ''}
+      ${ca.irrigation_plan ? `<div class="info-row"><strong>💧 Irrigation:</strong> ${escHtml(ca.irrigation_plan)}</div>` : ''}
+      ${ca.harvesting_timeline ? `<div class="info-row"><strong>⏱️ Harvest:</strong> ${escHtml(ca.harvesting_timeline)}</div>` : ''}
+      ${ca.tips ? `<ul>${ca.tips.map(t=>`<li>${escHtml(t)}</li>`).join('')}</ul>` : ''}
+    </div>`;
+  }
+
+  if (data.weather_irrigation && !data.weather_irrigation.raw) {
+    const wi = data.weather_irrigation;
+    html += `<div class="response-block agent-block">
+      <div class="agent-block-header">🌤️ Weather & Irrigation Agent</div>
+      ${wi.weather_summary ? `<p>${escHtml(wi.weather_summary)}</p>` : ''}
+      ${wi.irrigation_recommendation ? `<div class="info-row"><strong>💧 Next Irrigation:</strong> ${escHtml(wi.irrigation_recommendation.next_irrigation_date || '')} — ${escHtml(wi.irrigation_recommendation.water_amount_mm + 'mm')} via ${escHtml(wi.irrigation_recommendation.method || '')}</div>` : ''}
+      ${wi.risk_alerts && wi.risk_alerts.length ? `<div class="alert-list">${wi.risk_alerts.map(r=>`<div class="alert-item">⚠️ ${escHtml(r)}</div>`).join('')}</div>` : ''}
+    </div>`;
+  }
+
+  if (data.pest_disease && !data.pest_disease.raw) {
+    const pd = data.pest_disease;
+    html += `<div class="response-block agent-block">
+      <div class="agent-block-header">🔬 Pest & Disease Agent</div>
+      <div class="info-row"><strong>🎯 Identified:</strong> ${escHtml(pd.identified_problem || '')} (${escHtml(pd.confidence||'')} confidence — ${escHtml(pd.severity||'')})</div>
+      ${pd.immediate_action ? `<div class="info-row urgent"><strong>🚨 Immediate Action:</strong> ${escHtml(pd.immediate_action)}</div>` : ''}
+      ${pd.biological_treatment ? `<div class="info-row"><strong>🌿 Eco Treatment:</strong> ${escHtml(pd.biological_treatment)}</div>` : ''}
+    </div>`;
+  }
+
+  if (data.market_insights && !data.market_insights.raw) {
+    const mi = data.market_insights;
+    html += `<div class="response-block agent-block">
+      <div class="agent-block-header">📈 Market Insights Agent</div>
+      ${mi.selling_strategy ? `<div class="info-row"><strong>💰 Strategy:</strong> ${escHtml(mi.selling_strategy)}</div>` : ''}
+      ${mi.current_price_estimate ? `<div class="info-row"><strong>📊 Price Range:</strong> ₹${mi.current_price_estimate.min_rs_per_quintal}–₹${mi.current_price_estimate.max_rs_per_quintal}/qtl (${escHtml(mi.current_price_estimate.trend||'')})</div>` : ''}
+    </div>`;
+  }
+
+  if (!html) {
+    html = `<div class="response-block">${escHtml(JSON.stringify(data, null, 2)).replace(/\n/g,'<br>').replace(/ /g,'&nbsp;')}</div>`;
+  }
+
+  if (agents.length) {
+    html += `<div class="agents-used">Agents used: ${agents.map(a=>`<span class="agent-tag">${escHtml(a)}</span>`).join(' ')}</div>`;
+  }
+
+  appendMessage('agent', html, true);
+}
+
+function appendMessage(role, content, isHtml = false) {
+  const container = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = `message ${role}-message`;
+  const time = new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  div.innerHTML = `
+    <div class="message-avatar">${role === 'user' ? '🧑‍🌾' : '🌱'}</div>
+    <div class="message-content">
+      <div class="message-header">
+        <strong>${role === 'user' ? 'You' : 'SmartFarm AI'}</strong>
+        <span class="message-time">${time}</span>
+      </div>
+      <div class="message-text">${isHtml ? content : escHtml(content)}</div>
+    </div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function showTyping(show) {
+  document.getElementById('typingIndicator').style.display = show ? 'flex' : 'none';
+  document.getElementById('sendBtn').disabled = show;
+}
+
+function escHtml(str) {
+  if (typeof str !== 'string') str = String(str || '');
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+{% endblock %}

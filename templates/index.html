@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}Smart Farming AI Agent — Home{% endblock %}
+{% block topbar_title %}Welcome to SmartFarm AI{% endblock %}
+{% block content %}
+
+<div class="hero-section">
+  <div class="hero-content">
+    <div class="hero-badge">🌍 AI-Powered Precision Agriculture</div>
+    <h1 class="hero-title">Smart Farming Agent<br><span class="gradient-text">for Modern Agriculture</span></h1>
+    <p class="hero-desc">Empowering farmers with real-time AI advisory, crop intelligence, pest detection, weather insights, and market forecasting — all in one platform powered by Groq LLM.</p>
+    <div class="hero-cta">
+      <a href="/chat" class="btn btn-primary">🤖 Talk to AI Agent</a>
+      <a href="/dashboard" class="btn btn-secondary">📊 Open Dashboard</a>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <div class="farm-stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">🌾</div>
+        <div class="stat-value">500+</div>
+        <div class="stat-label">Crop Guidelines</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🔬</div>
+        <div class="stat-value">AI</div>
+        <div class="stat-label">Pest Detection</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🌤️</div>
+        <div class="stat-value">5-Day</div>
+        <div class="stat-label">Forecasts</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📈</div>
+        <div class="stat-value">Live</div>
+        <div class="stat-label">Market Prices</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Agents Section -->
+<section class="agents-section">
+  <h2 class="section-title">🤝 Multi-Agent Collaboration System</h2>
+  <p class="section-subtitle">Four specialized AI agents work together to deliver comprehensive farming intelligence</p>
+  <div class="agents-grid">
+    <a href="/crop-advisor" class="agent-card">
+      <div class="agent-icon" style="background: linear-gradient(135deg,#22c55e,#16a34a)">🌾</div>
+      <h3>Crop Advisory Agent</h3>
+      <p>Personalized seed selection, fertilizer schedules, and harvest timelines based on your soil and climate.</p>
+      <div class="agent-tags">
+        <span>RAG Knowledge</span><span>NPK Planning</span><span>Variety Selection</span>
+      </div>
+    </a>
+    <a href="/weather" class="agent-card">
+      <div class="agent-icon" style="background: linear-gradient(135deg,#3b82f6,#2563eb)">🌤️</div>
+      <h3>Weather & Irrigation Agent</h3>
+      <p>Real-time weather analysis, 5-day forecasts, and smart irrigation scheduling to optimize water use.</p>
+      <div class="agent-tags">
+        <span>Live Weather</span><span>Drip/Sprinkler</span><span>ETo Calculation</span>
+      </div>
+    </a>
+    <a href="/pest-detection" class="agent-card">
+      <div class="agent-icon" style="background: linear-gradient(135deg,#f59e0b,#d97706)">🔬</div>
+      <h3>Pest & Disease Agent</h3>
+      <p>Upload crop photos for instant AI diagnosis — identifies pests, diseases, and deficiencies with treatment plans.</p>
+      <div class="agent-tags">
+        <span>Image Analysis</span><span>IPM Advice</span><span>Treatment Plan</span>
+      </div>
+    </a>
+    <a href="/market-insights" class="agent-card">
+      <div class="agent-icon" style="background: linear-gradient(135deg,#8b5cf6,#7c3aed)">📈</div>
+      <h3>Market Insights Agent</h3>
+      <p>Price forecasting, selling strategy, value addition opportunities, and cost optimization for maximum income.</p>
+      <div class="agent-tags">
+        <span>Price Forecast</span><span>MSP Guidance</span><span>FPO Market</span>
+      </div>
+    </a>
+  </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section">
+  <h2 class="section-title">⚙️ Platform Features</h2>
+  <div class="features-grid">
+    <div class="feature-item">
+      <span class="feature-icon">🗂️</span>
+      <div>
+        <strong>RAG Knowledge Base</strong>
+        <p>Agricultural guidelines, government advisories, and best practices retrieved contextually.</p>
+      </div>
+    </div>
+    <div class="feature-item">
+      <span class="feature-icon">🌐</span>
+      <div>
+        <strong>Real-time Weather Integration</strong>
+        <p>OpenWeatherMap powered current conditions and 5-day agricultural forecasts.</p>
+      </div>
+    </div>
+    <div class="feature-item">
+      <span class="feature-icon">📸</span>
+      <div>
+        <strong>Multimodal Image Analysis</strong>
+        <p>Upload crop images for instant visual pest and disease identification using LLaMA Vision.</p>
+      </div>
+    </div>
+    <div class="feature-item">
+      <span class="feature-icon">⚡</span>
+      <div>
+        <strong>Groq Ultra-Fast Inference</strong>
+        <p>Sub-second LLM responses for real-time farming advice in the field.</p>
+      </div>
+    </div>
+    <div class="feature-item">
+      <span class="feature-icon">🧑‍🌾</span>
+      <div>
+        <strong>Personalized Profiles</strong>
+        <p>Advice tailored to your specific crop, location, soil type, and growth stage.</p>
+      </div>
+    </div>
+    <div class="feature-item">
+      <span class="feature-icon">🤝</span>
+      <div>
+        <strong>Multi-Agent Orchestration</strong>
+        <p>Agents collaborate and synthesize insights for comprehensive recommendations.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- About Creator Section -->
+<section class="creator-section">
+  <div class="creator-container">
+    <div class="creator-header">
+      <div class="creator-avatar">👨‍💻</div>
+      <div class="creator-info">
+        <h2 class="creator-title">Meet the Creator</h2>
+        <h3 class="creator-name-large">Mithu Gowda A</h3>
+        <p class="creator-role">AI & Full-Stack Developer · Smart Agriculture Innovator</p>
+      </div>
+    </div>
+    <div class="creator-bio">
+      <p><strong>SmartFarm AI</strong> is a passion project developed by <strong>Mithu Gowda A</strong> to address real-world challenges faced by Indian farmers. Combining expertise in <strong>AI/ML, Multi-Agent Systems, and Web Development</strong>, this platform leverages cutting-edge technologies like Groq LLM, Python Flask, and Retrieval-Augmented Generation (RAG) to deliver instant, actionable agricultural insights.</p>
+      <p>The vision is simple: <strong>empower every farmer with intelligent tools</strong> that were once only available to large agribusinesses — making precision agriculture accessible to all.</p>
+    </div>
+    <div class="creator-tech-stack">
+      <div class="tech-stack-title">🛠️ Tech Stack</div>
+      <div class="tech-stack-badges">
+        <span class="tech-stack-badge">Python</span>
+        <span class="tech-stack-badge">Flask</span>
+        <span class="tech-stack-badge">Groq LLM</span>
+        <span class="tech-stack-badge">Multi-Agent AI</span>
+        <span class="tech-stack-badge">RAG Knowledge Base</span>
+        <span class="tech-stack-badge">OpenWeatherMap API</span>
+        <span class="tech-stack-badge">LLaMA Vision</span>
+        <span class="tech-stack-badge">JavaScript</span>
+        <span class="tech-stack-badge">HTML/CSS</span>
+      </div>
+    </div>
+    <div class="creator-cta">
+      <a href="/chat" class="btn btn-primary">🚀 Try the AI Agent Now</a>
+      <div class="creator-contact">
+        <span>Questions or Feedback?</span>
+        <span class="creator-email">Contact: <strong>Mithu Gowda A</strong></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

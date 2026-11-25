@@ -1,0 +1,449 @@
+{% extends "base.html" %}
+{% block title %}Pest & Disease Detection — SmartFarm AI{% endblock %}
+{% block topbar_title %}🔬 Pest & Disease Detection Agent{% endblock %}
+{% block content %}
+
+<style>
+/* ── Medicine Gallery ── */
+.medicine-gallery-section {
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+.medicine-gallery-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.medicine-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.85rem;
+}
+.medicine-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: transform 0.18s, border-color 0.18s, box-shadow 0.18s;
+  cursor: default;
+}
+.medicine-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+.medicine-img-wrap {
+  position: relative;
+  width: 100%;
+  height: 160px;
+  overflow: hidden;
+  background: #1a2235;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.medicine-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 8px;
+  transition: transform 0.3s;
+  background: #1a2235;
+}
+.medicine-card:hover .medicine-img-wrap img {
+  transform: scale(1.06);
+}
+/* top-left category chip */
+.medicine-category-pill {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.18rem 0.5rem;
+  border-radius: 20px;
+  color: #fff;
+  letter-spacing: 0.03em;
+  backdrop-filter: blur(4px);
+  background: rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.18);
+  text-transform: uppercase;
+}
+/* bottom-right form chip  e.g. "Liquid (EC)" */
+.medicine-form-pill {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  font-size: 0.63rem;
+  font-weight: 700;
+  padding: 0.18rem 0.5rem;
+  border-radius: 20px;
+  background: rgba(0,0,0,0.65);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #d1fae5;
+  letter-spacing: 0.02em;
+}
+.medicine-body {
+  padding: 0.75rem;
+}
+.medicine-name {
+  font-size: 0.84rem;
+  font-weight: 700;
+  margin-bottom: 0.2rem;
+  line-height: 1.3;
+}
+.medicine-brand {
+  font-size: 0.7rem;
+  color: var(--text3);
+  margin-bottom: 0.4rem;
+  font-style: italic;
+}
+.medicine-desc {
+  font-size: 0.75rem;
+  color: var(--text2);
+  line-height: 1.55;
+  margin-bottom: 0.4rem;
+}
+.medicine-how-to-use {
+  font-size: 0.72rem;
+  color: var(--green);
+  font-weight: 600;
+  margin-top: 0.3rem;
+}
+.medicine-img-error {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  color: var(--text3);
+  font-size: 0.75rem;
+}
+.medicine-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text3);
+  font-size: 0.8rem;
+  padding: 0.5rem 0;
+}
+.medicine-loading .mini-spinner {
+  width: 16px; height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: mspin 0.7s linear infinite;
+}
+@keyframes mspin { to { transform: rotate(360deg); } }
+</style>
+
+<div class="page-header">
+  <h2>Pest & Disease Detection Agent</h2>
+  <p>Upload a crop photo or describe symptoms for instant AI-powered diagnosis and treatment recommendations.</p>
+</div>
+
+<div class="two-col-layout">
+  <!-- Input Panel -->
+  <div class="card form-card">
+    <h3 class="card-title">🌿 Diagnosis Input</h3>
+    <div class="form-group">
+      <label class="form-label">Crop Name *</label>
+      <input type="text" id="p_crop" class="form-input" placeholder="e.g. Tomato, Rice, Cotton, Wheat">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Location</label>
+      <input type="text" id="p_location" class="form-input" placeholder="e.g. Maharashtra, Punjab">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Describe Symptoms *</label>
+      <textarea id="p_symptoms" class="form-input" rows="4"
+        placeholder="e.g. Yellow spots on lower leaves, wilting, brown patches on stem, small insects visible under leaves..."></textarea>
+    </div>
+
+    <!-- Image Upload -->
+    <div class="form-group">
+      <label class="form-label">📸 Upload Crop Image (optional)</label>
+      <div class="upload-zone" id="uploadZone" onclick="document.getElementById('imageInput').click()"
+           ondragover="event.preventDefault(); this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="handleDrop(event)">
+        <div class="upload-icon">📷</div>
+        <div class="upload-text">Click or drag & drop image here</div>
+        <div class="upload-hint">JPG, PNG, WEBP — max 16MB</div>
+        <img id="imagePreview" class="image-preview" style="display:none" alt="Preview">
+      </div>
+      <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="previewImage(event)">
+      <button class="btn btn-secondary btn-sm" id="clearImageBtn" style="display:none; margin-top:0.5rem" onclick="clearImage()">✕ Remove Image</button>
+    </div>
+
+    <!-- Quick Symptoms -->
+    <div class="form-group">
+      <label class="form-label">🔖 Common Symptom Templates</label>
+      <div class="symptom-tags">
+        <button class="symptom-tag" onclick="setSymptom('Yellow leaves with green veins, stunted growth')">Yellow leaves</button>
+        <button class="symptom-tag" onclick="setSymptom('Brown spots on leaves with yellow halo, spreading rapidly')">Brown spots</button>
+        <button class="symptom-tag" onclick="setSymptom('White powdery coating on leaves and stems')">Powdery mildew</button>
+        <button class="symptom-tag" onclick="setSymptom('Holes in leaves, insects visible, sticky residue')">Insect damage</button>
+        <button class="symptom-tag" onclick="setSymptom('Wilting despite adequate water, brown stem base, root rot')">Wilting/wilt</button>
+        <button class="symptom-tag" onclick="setSymptom('Curling leaves, mosaic pattern, yellowing, deformed growth')">Viral symptoms</button>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-full" onclick="detectPest()" id="pestBtn">
+      🔬 Diagnose Problem
+    </button>
+  </div>
+
+  <!-- Results Panel -->
+  <div class="card result-card" id="pestResults" style="display:none">
+    <h3 class="card-title">🎯 Diagnosis Report</h3>
+    <div id="pestResultsContent"></div>
+
+    <!-- Medicine / Treatment Photo Gallery -->
+    <div class="medicine-gallery-section" id="medicineGallery" style="display:none">
+      <div class="medicine-gallery-title">
+        🧴 Recommended Treatment Products
+        <span style="font-size:0.72rem;font-weight:400;color:var(--text3);margin-left:auto">Real-world agri products · Sprays &amp; Powders</span>
+      </div>
+      <div id="medicineLoadingIndicator" class="medicine-loading" style="display:none">
+        <div class="mini-spinner"></div>
+        Loading treatment product images…
+      </div>
+      <div class="medicine-grid" id="medicineGrid"></div>
+    </div>
+  </div>
+</div>
+
+<div class="loading-overlay" id="pestLoading" style="display:none">
+  <div class="loading-card">
+    <div class="spinner"></div>
+    <div class="loading-steps">
+      <div class="loading-step active">🔍 Analyzing symptoms...</div>
+      <div class="loading-step">📸 Processing image (if uploaded)...</div>
+      <div class="loading-step">🧬 Identifying pest/disease...</div>
+      <div class="loading-step">🧴 Preparing treatment plan...</div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+let imageFile = null;
+
+function previewImage(event) {
+  imageFile = event.target.files[0];
+  if (!imageFile) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const preview = document.getElementById('imagePreview');
+    preview.src = e.target.result;
+    preview.style.display = 'block';
+    document.getElementById('clearImageBtn').style.display = 'inline-flex';
+    document.querySelector('.upload-text').textContent = imageFile.name;
+    document.querySelector('.upload-hint').textContent = (imageFile.size / 1024).toFixed(0) + ' KB';
+  };
+  reader.readAsDataURL(imageFile);
+}
+
+function handleDrop(event) {
+  event.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag-over');
+  const file = event.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) {
+    imageFile = file;
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document.getElementById('imageInput').files = dt.files;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const preview = document.getElementById('imagePreview');
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+      document.getElementById('clearImageBtn').style.display = 'inline-flex';
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function clearImage() {
+  imageFile = null;
+  document.getElementById('imageInput').value = '';
+  document.getElementById('imagePreview').style.display = 'none';
+  document.getElementById('clearImageBtn').style.display = 'none';
+  document.querySelector('.upload-text').textContent = 'Click or drag & drop image here';
+  document.querySelector('.upload-hint').textContent = 'JPG, PNG, WEBP — max 16MB';
+}
+
+function setSymptom(text) {
+  document.getElementById('p_symptoms').value = text;
+}
+
+async function detectPest() {
+  const crop = document.getElementById('p_crop').value.trim();
+  const symptoms = document.getElementById('p_symptoms').value.trim();
+  if (!crop) { alert('Please enter a crop name'); return; }
+  if (!symptoms && !imageFile) { alert('Please describe symptoms or upload an image'); return; }
+
+  document.getElementById('pestLoading').style.display = 'flex';
+  document.getElementById('pestBtn').disabled = true;
+  document.getElementById('medicineGallery').style.display = 'none';
+  document.getElementById('medicineGrid').innerHTML = '';
+
+  try {
+    const formData = new FormData();
+    formData.append('crop', crop);
+    formData.append('symptoms', symptoms || 'Visual symptoms in uploaded image');
+    formData.append('location', document.getElementById('p_location').value.trim() || 'India');
+    if (imageFile) formData.append('image', imageFile);
+
+    const res = await fetch('/api/pest-detection', { method: 'POST', body: formData });
+    const json = await res.json();
+    document.getElementById('pestLoading').style.display = 'none';
+    document.getElementById('pestBtn').disabled = false;
+    if (json.success) {
+      renderPestResults(json.data, crop);
+    } else {
+      showPestError(json.error);
+    }
+  } catch (e) {
+    document.getElementById('pestLoading').style.display = 'none';
+    document.getElementById('pestBtn').disabled = false;
+    showPestError(e.message);
+  }
+}
+
+function renderPestResults(data, crop) {
+  const severityColor = { 'Mild':'#22c55e', 'Moderate':'#f59e0b', 'Severe':'#ef4444' };
+  const confColor    = { 'High':'#22c55e', 'Medium':'#f59e0b', 'Low':'#ef4444' };
+
+  if (data.raw) {
+    document.getElementById('pestResultsContent').innerHTML =
+      `<div class="prose">${escHtml(data.identified_problem||'').replace(/\n/g,'<br>')}</div>`;
+  } else {
+    document.getElementById('pestResultsContent').innerHTML = `
+      ${data.uploaded_image ? `<img src="${data.uploaded_image}" class="result-image" alt="Uploaded crop image">` : ''}
+      <div class="diagnosis-header">
+        <div class="diagnosis-name">${escHtml(data.identified_problem || 'Unknown')}</div>
+        <div class="diagnosis-badges">
+          <span class="badge" style="background:${confColor[data.confidence]||'#888'}">${escHtml(data.confidence||'—')} Confidence</span>
+          <span class="badge" style="background:${severityColor[data.severity]||'#888'}">${escHtml(data.severity||'—')} Severity</span>
+        </div>
+      </div>
+      ${data.description ? `<p class="description-text">${escHtml(data.description)}</p>` : ''}
+      ${data.immediate_action ? `
+      <div class="urgent-action-box">
+        <h4>🚨 Immediate Action Required</h4>
+        <p>${escHtml(data.immediate_action)}</p>
+      </div>` : ''}
+      <div class="treatment-grid">
+        ${data.chemical_treatment ? `
+        <div class="treatment-card">
+          <h4>🧪 Chemical Treatment</h4>
+          <p><strong>Product:</strong> ${escHtml(data.chemical_treatment.product||'')}</p>
+          <p><strong>Dose:</strong> ${escHtml(data.chemical_treatment.dose||'')}</p>
+          <p><strong>Frequency:</strong> ${escHtml(data.chemical_treatment.frequency||'')}</p>
+        </div>` : ''}
+        ${data.biological_treatment ? `
+        <div class="treatment-card eco">
+          <h4>🌿 Biological / Eco Treatment</h4>
+          <p>${escHtml(data.biological_treatment)}</p>
+        </div>` : ''}
+      </div>
+      ${data.preventive_measures && data.preventive_measures.length ? `
+      <div class="tips-box">
+        <h4>🛡️ Prevention Measures</h4>
+        <ul>${data.preventive_measures.map(p=>`<li>${escHtml(p)}</li>`).join('')}</ul>
+      </div>` : ''}
+      ${data.spread_risk ? `<div class="note-box">⚡ <strong>Spread Risk:</strong> ${escHtml(data.spread_risk)}</div>` : ''}`;
+  }
+
+  document.getElementById('pestResults').style.display = 'block';
+  document.getElementById('pestResults').scrollIntoView({ behavior: 'smooth' });
+  loadMedicineImages(data, crop);
+}
+
+async function loadMedicineImages(data, crop) {
+  const gallery = document.getElementById('medicineGallery');
+  const loader  = document.getElementById('medicineLoadingIndicator');
+  const grid    = document.getElementById('medicineGrid');
+
+  gallery.style.display = 'block';
+  loader.style.display  = 'flex';
+  grid.innerHTML = '';
+
+  try {
+    const payload = {
+      problem:              data.identified_problem || '',
+      chemical_product:     (data.chemical_treatment && data.chemical_treatment.product) ? data.chemical_treatment.product : '',
+      biological_treatment: data.biological_treatment || '',
+      crop:                 crop || ''
+    };
+    const res  = await fetch('/api/medicine-images', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    loader.style.display = 'none';
+    if (json.success && json.medicines && json.medicines.length) {
+      renderMedicineCards(json.medicines);
+    } else {
+      grid.innerHTML = `<p style="font-size:0.8rem;color:var(--text3);grid-column:1/-1">No matching products found.</p>`;
+    }
+  } catch (e) {
+    loader.style.display = 'none';
+    grid.innerHTML = `<p style="font-size:0.8rem;color:var(--red);grid-column:1/-1">Could not load product images.</p>`;
+  }
+}
+
+function renderMedicineCards(medicines) {
+  const grid = document.getElementById('medicineGrid');
+  grid.innerHTML = medicines.map(med => `
+    <div class="medicine-card" style="border-color:${med.color}44">
+      <div class="medicine-img-wrap">
+        <img
+          src="${escAttr(med.image)}"
+          alt="${escAttr(med.brand_name)}"
+          loading="lazy"
+          onerror="this.style.display='none';this.parentElement.querySelector('.med-fallback').style.display='flex'"
+        >
+        <div class="med-fallback medicine-img-error" style="display:none;position:absolute;inset:0">
+          <span style="font-size:3rem">${med.emoji}</span>
+          <span style="font-size:0.72rem;text-align:center;padding:0 0.5rem">${escHtml(med.brand_name)}</span>
+        </div>
+        <div class="medicine-category-pill">${escHtml(med.category)}</div>
+        <div class="medicine-form-pill">${escHtml(med.form)}</div>
+      </div>
+      <div class="medicine-body">
+        <div class="medicine-name" style="color:${med.color}">
+          ${med.emoji}&nbsp;${escHtml(med.brand_name)}
+        </div>
+        <div class="medicine-brand">${escHtml(med.generic_name)} &mdash; by ${escHtml(med.manufacturer)}</div>
+        <div class="medicine-desc">${escHtml(med.description)}</div>
+        <div class="medicine-how-to-use">↳ ${escHtml(med.how_to_use)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function showPestError(msg) {
+  document.getElementById('pestResultsContent').innerHTML = `<div class="error-box">❌ ${escHtml(msg)}</div>`;
+  document.getElementById('pestResults').style.display = 'block';
+}
+
+function escHtml(str) {
+  if (typeof str !== 'string') str = String(str || '');
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escAttr(str) {
+  if (typeof str !== 'string') str = String(str || '');
+  return str.replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+</script>
+{% endblock %}

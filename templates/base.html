@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Smart Farming AI Agent{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<!-- Sidebar Navigation -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="logo">
+      <span class="logo-icon">🌱</span>
+      <div class="logo-text">
+        <strong>SmartFarm AI</strong>
+        <small>Powered by Groq LLM</small>
+      </div>
+    </div>
+    <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()">☰</button>
+  </div>
+  <ul class="nav-links">
+    <li><a href="/" class="nav-item {% if request.path == '/' %}active{% endif %}">
+      <span class="nav-icon">🏠</span><span class="nav-label">Home</span>
+    </a></li>
+    <li><a href="/dashboard" class="nav-item {% if request.path == '/dashboard' %}active{% endif %}">
+      <span class="nav-icon">📊</span><span class="nav-label">Dashboard</span>
+    </a></li>
+    <li><a href="/chat" class="nav-item {% if request.path == '/chat' %}active{% endif %}">
+      <span class="nav-icon">🤖</span><span class="nav-label">AI Chat Agent</span>
+    </a></li>
+    <li><a href="/crop-advisor" class="nav-item {% if request.path == '/crop-advisor' %}active{% endif %}">
+      <span class="nav-icon">🌾</span><span class="nav-label">Crop Advisory</span>
+    </a></li>
+    <li><a href="/weather" class="nav-item {% if request.path == '/weather' %}active{% endif %}">
+      <span class="nav-icon">🌤️</span><span class="nav-label">Weather & Irrigation</span>
+    </a></li>
+    <li><a href="/pest-detection" class="nav-item {% if request.path == '/pest-detection' %}active{% endif %}">
+      <span class="nav-icon">🔬</span><span class="nav-label">Pest Detection</span>
+    </a></li>
+    <li><a href="/market-insights" class="nav-item {% if request.path == '/market-insights' %}active{% endif %}">
+      <span class="nav-icon">📈</span><span class="nav-label">Market Insights</span>
+    </a></li>
+  </ul>
+  <div class="sidebar-footer">
+    <div class="agent-status">
+      <span class="status-dot online"></span>
+      <span>4 Agents Active</span>
+    </div>
+  </div>
+  <!-- Creator Credits in Sidebar -->
+  <div class="sidebar-credits">
+    <div class="creator-badge">
+      <span class="creator-icon">👨‍💻</span>
+      <div class="creator-text">
+        <strong>Created by</strong>
+        <span>Mithu Gowda A</span>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<main class="main-content" id="mainContent">
+  <div class="topbar">
+    <button class="mobile-toggle" onclick="toggleSidebar()">☰</button>
+    <div class="topbar-title">{% block topbar_title %}Smart Farming AI{% endblock %}</div>
+    <div class="topbar-actions">
+      <span class="groq-badge">⚡ Groq LLM</span>
+    </div>
+  </div>
+  <div class="page-body">
+    {% block content %}{% endblock %}
+  </div>
+  
+  <!-- Page Footer with Credits -->
+  <footer class="page-footer">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <div class="footer-logo">🌱 <strong>SmartFarm AI</strong></div>
+        <p class="footer-tagline">AI-Powered Smart Farming Solutions for Indian Agriculture</p>
+      </div>
+      <div class="footer-credits">
+        <div class="credits-main">
+          <span class="credits-label">Developed by</span>
+          <span class="credits-name">Mithu Gowda A</span>
+        </div>
+        <div class="credits-tech">
+          <span class="tech-badge">🤖 Multi-Agent AI System</span>
+          <span class="tech-badge">⚡ Groq LLM</span>
+          <span class="tech-badge">🐍 Python Flask</span>
+        </div>
+      </div>
+      <div class="footer-meta">
+        <p>&copy; 2024 SmartFarm AI · Created by <strong>Mithu Gowda A</strong></p>
+        <p class="footer-note">Empowering farmers with intelligent agricultural insights</p>
+      </div>
+    </div>
+  </footer>
+</main>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Crop Advisory — SmartFarm AI{% endblock %}
+{% block topbar_title %}🌾 Crop Advisory Agent{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h2>Crop Advisory Agent</h2>
+  <p>Get personalized seed, fertilizer, irrigation, and harvest recommendations powered by RAG + LLM.</p>
+</div>
+
+<div class="two-col-layout">
+  <!-- Input Form -->
+  <div class="card form-card">
+    <h3 class="card-title">🌱 Farm Details</h3>
+    <div class="form-group">
+      <label class="form-label">Crop *</label>
+      <input type="text" id="crop" class="form-input" placeholder="e.g. Rice, Wheat, Tomato, Cotton" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Location *</label>
+      <input type="text" id="location" class="form-input" placeholder="e.g. Punjab, Maharashtra, Tamil Nadu">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Soil Type</label>
+        <select id="soil_type" class="form-input">
+          <option value="loamy">Loamy</option>
+          <option value="clay">Clay</option>
+          <option value="sandy">Sandy</option>
+          <option value="black cotton">Black Cotton</option>
+          <option value="red laterite">Red Laterite</option>
+          <option value="alluvial">Alluvial</option>
+          <option value="saline">Saline/Alkaline</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Season</label>
+        <select id="season" class="form-input">
+          <option value="Kharif">Kharif (June–Nov)</option>
+          <option value="Rabi">Rabi (Nov–Apr)</option>
+          <option value="Zaid">Zaid (Mar–Jun)</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Specific Query (optional)</label>
+      <textarea id="query" class="form-input" rows="3" placeholder="e.g. What fertilizer dose for high yield? How to prevent lodging?"></textarea>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="getCropAdvice()" id="cropBtn">
+      🌾 Get Crop Advisory
+    </button>
+  </div>
+
+  <!-- Results -->
+  <div class="card result-card" id="cropResults" style="display:none">
+    <h3 class="card-title">📋 Advisory Report</h3>
+    <div id="cropResultsContent"></div>
+  </div>
+</div>
+
+<!-- Loading -->
+<div class="loading-overlay" id="cropLoading" style="display:none">
+  <div class="loading-card">
+    <div class="spinner"></div>
+    <div class="loading-steps" id="loadingSteps">
+      <div class="loading-step active">🗂️ Searching knowledge base...</div>
+      <div class="loading-step">🌾 Analyzing crop requirements...</div>
+      <div class="loading-step">🤖 Generating personalized advice...</div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+let stepInterval;
+
+async function getCropAdvice() {
+  const crop = document.getElementById('crop').value.trim();
+  const location = document.getElementById('location').value.trim();
+  if (!crop) { alert('Please enter a crop name'); return; }
+
+  showLoading(true);
+
+  const payload = {
+    crop, location,
+    soil_type: document.getElementById('soil_type').value,
+    season: document.getElementById('season').value,
+    query: document.getElementById('query').value.trim() || `Complete advisory for ${crop} cultivation in ${location}`
+  };
+
+  try {
+    const res = await fetch('/api/crop-advisory', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    showLoading(false);
+    if (json.success) {
+      renderCropResults(json.data, crop, location);
+    } else {
+      showError(json.error);
+    }
+  } catch (e) {
+    showLoading(false);
+    showError('Connection error: ' + e.message);
+  }
+}
+
+function renderCropResults(data, crop, location) {
+  const container = document.getElementById('cropResultsContent');
+  if (data.raw) {
+    container.innerHTML = `<div class="prose">${escHtml(data.summary||JSON.stringify(data)).replace(/\n/g,'<br>')}</div>`;
+  } else {
+    container.innerHTML = `
+      <div class="result-summary-box">${escHtml(data.summary || '')}</div>
+
+      <div class="result-grid">
+        <div class="result-item">
+          <div class="result-icon">🌱</div>
+          <div class="result-label">Recommended Seeds / Varieties</div>
+          <div class="result-value">${escHtml(data.seed_recommendation || 'N/A')}</div>
+        </div>
+        <div class="result-item">
+          <div class="result-icon">🧪</div>
+          <div class="result-label">Fertilizer Schedule</div>
+          <div class="result-value">${escHtml(data.fertilizer_schedule || 'N/A')}</div>
+        </div>
+        <div class="result-item">
+          <div class="result-icon">💧</div>
+          <div class="result-label">Irrigation Plan</div>
+          <div class="result-value">${escHtml(data.irrigation_plan || 'N/A')}</div>
+        </div>
+        <div class="result-item">
+          <div class="result-icon">⏱️</div>
+          <div class="result-label">Harvesting Timeline</div>
+          <div class="result-value">${escHtml(data.harvesting_timeline || 'N/A')}</div>
+        </div>
+      </div>
+
+      ${data.key_warnings && data.key_warnings.length ? `
+      <div class="warnings-box">
+        <h4>⚠️ Key Warnings</h4>
+        <ul>${data.key_warnings.map(w=>`<li>${escHtml(w)}</li>`).join('')}</ul>
+      </div>` : ''}
+
+      ${data.tips && data.tips.length ? `
+      <div class="tips-box">
+        <h4>💡 Pro Tips</h4>
+        <ul>${data.tips.map(t=>`<li>${escHtml(t)}</li>`).join('')}</ul>
+      </div>` : ''}
+
+      <div class="result-meta">
+        <span>🌾 ${escHtml(crop)}</span>
+        <span>📍 ${escHtml(location)}</span>
+        <span>⚡ Powered by Groq LLM</span>
+      </div>`;
+  }
+  document.getElementById('cropResults').style.display = 'block';
+  document.getElementById('cropResults').scrollIntoView({ behavior: 'smooth' });
+}
+
+function showLoading(show) {
+  document.getElementById('cropLoading').style.display = show ? 'flex' : 'none';
+  document.getElementById('cropBtn').disabled = show;
+  if (show) {
+    let step = 0;
+    const steps = document.querySelectorAll('.loading-step');
+    steps.forEach(s => s.classList.remove('active'));
+    steps[0].classList.add('active');
+    stepInterval = setInterval(() => {
+      steps.forEach(s => s.classList.remove('active'));
+      step = (step + 1) % steps.length;
+      steps[step].classList.add('active');
+    }, 1200);
+  } else {
+    clearInterval(stepInterval);
+  }
+}
+
+function showError(msg) {
+  document.getElementById('cropResultsContent').innerHTML = `<div class="error-box">❌ ${escHtml(msg)}</div>`;
+  document.getElementById('cropResults').style.display = 'block';
+}
+
+function escHtml(str) {
+  if (typeof str !== 'string') str = String(str || '');
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+{% endblock %}

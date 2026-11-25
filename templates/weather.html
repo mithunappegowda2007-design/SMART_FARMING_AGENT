@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}Weather & Irrigation — SmartFarm AI{% endblock %}
+{% block topbar_title %}🌤️ Weather & Irrigation Agent{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <h2>Weather & Irrigation Intelligence</h2>
+  <p>Real-time weather analysis and smart irrigation scheduling powered by AI.</p>
+</div>
+
+<div class="weather-layout">
+  <!-- Input -->
+  <div class="card form-card">
+    <h3 class="card-title">📍 Location & Crop Details</h3>
+    <div class="form-group">
+      <label class="form-label">Location *</label>
+      <input type="text" id="w_location" class="form-input" placeholder="e.g. Ludhiana, Nashik, Chennai">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Crop</label>
+      <input type="text" id="w_crop" class="form-input" placeholder="e.g. Wheat, Rice, Tomato">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Growth Stage</label>
+      <select id="w_stage" class="form-input">
+        <option value="germination">Germination</option>
+        <option value="vegetative" selected>Vegetative</option>
+        <option value="flowering">Flowering</option>
+        <option value="grain filling">Grain Filling</option>
+        <option value="maturity">Maturity</option>
+      </select>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="getWeatherInsights()" id="weatherBtn">
+      🌤️ Get Weather & Irrigation Advice
+    </button>
+  </div>
+
+  <!-- Weather Dashboard -->
+  <div id="weatherDashboard" style="display:none; flex:1; min-width:0">
+    <!-- Current Weather Card -->
+    <div class="card weather-current-card" id="currentWeatherCard">
+      <h3 class="card-title" id="weatherLocation">📍 —</h3>
+      <div class="weather-main">
+        <div class="weather-temp" id="weatherTemp">—</div>
+        <div class="weather-desc" id="weatherDesc">—</div>
+      </div>
+      <div class="weather-stats-row">
+        <div class="weather-stat"><span>💧</span><span id="humidity">—</span><small>Humidity</small></div>
+        <div class="weather-stat"><span>💨</span><span id="windSpeed">—</span><small>Wind km/h</small></div>
+        <div class="weather-stat"><span>👁️</span><span id="visibility">—</span><small>Visibility km</small></div>
+        <div class="weather-stat"><span>🌡️</span><span id="feelsLike">—</span><small>Feels Like</small></div>
+      </div>
+    </div>
+
+    <!-- 5-Day Forecast -->
+    <div class="card" id="forecastCard">
+      <h3 class="card-title">📅 5-Day Forecast</h3>
+      <div class="forecast-row" id="forecastRow"></div>
+    </div>
+
+    <!-- AI Irrigation Advice -->
+    <div class="card" id="irrigationCard">
+      <h3 class="card-title">💧 AI Irrigation Recommendation</h3>
+      <div id="irrigationContent"></div>
+    </div>
+  </div>
+</div>
+
+<div class="loading-overlay" id="weatherLoading" style="display:none">
+  <div class="loading-card">
+    <div class="spinner"></div>
+    <div>🌍 Fetching weather data and generating irrigation advice...</div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script>
+async function getWeatherInsights() {
+  const location = document.getElementById('w_location').value.trim();
+  if (!location) { alert('Please enter a location'); return; }
+
+  document.getElementById('weatherLoading').style.display = 'flex';
+  document.getElementById('weatherBtn').disabled = true;
+  document.getElementById('weatherDashboard').style.display = 'none';
+
+  try {
+    const res = await fetch('/api/weather', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location,
+        crop: document.getElementById('w_crop').value.trim() || 'general crops',
+        growth_stage: document.getElementById('w_stage').value,
+      })
+    });
+    const json = await res.json();
+    document.getElementById('weatherLoading').style.display = 'none';
+    document.getElementById('weatherBtn').disabled = false;
+    if (json.success) {
+      renderWeather(json.weather, json.irrigation_advice);
+    } else {
+      alert('Error: ' + json.error);
+    }
+  } catch (e) {
+    document.getElementById('weatherLoading').style.display = 'none';
+    document.getElementById('weatherBtn').disabled = false;
+    alert('Error: ' + e.message);
+  }
+}
+
+function renderWeather(w, advice) {
+  // Current weather
+  const c = w.current;
+  document.getElementById('weatherLocation').textContent = '📍 ' + w.location;
+  document.getElementById('weatherTemp').textContent = c.temperature + '°C';
+  document.getElementById('weatherDesc').textContent = c.description;
+  document.getElementById('humidity').textContent = c.humidity + '%';
+  document.getElementById('windSpeed').textContent = (c.wind_speed * 3.6).toFixed(1);
+  document.getElementById('visibility').textContent = c.visibility;
+  document.getElementById('feelsLike').textContent = c.feels_like + '°C';
+
+  // 5-day forecast
+  const foreRow = document.getElementById('forecastRow');
+  foreRow.innerHTML = '';
+  const icons = { sunny:'☀️', clear:'🌙', rain:'🌧️', cloud:'☁️', drizzle:'🌦️', storm:'⛈️', snow:'❄️', mist:'🌫️' };
+  (w.forecast || []).forEach(day => {
+    const wd = day.description.toLowerCase();
+    let icon = '🌤️';
+    for (const [k,v] of Object.entries(icons)) { if (wd.includes(k)) { icon = v; break; } }
+    foreRow.innerHTML += `
+      <div class="forecast-day">
+        <div class="fc-date">${day.date.slice(5)}</div>
+        <div class="fc-icon">${icon}</div>
+        <div class="fc-temp">${day.temp_max}° / ${day.temp_min}°</div>
+        <div class="fc-rain">${day.rain_mm > 0 ? '🌧️ ' + day.rain_mm + 'mm' : '—'}</div>
+        <div class="fc-desc">${day.description}</div>
+      </div>`;
+  });
+
+  // Irrigation advice
+  const irrDiv = document.getElementById('irrigationContent');
+  if (advice && !advice.raw) {
+    const ir = advice.irrigation_recommendation || {};
+    irrDiv.innerHTML = `
+      ${advice.weather_summary ? `<div class="result-summary-box">${escHtml(advice.weather_summary)}</div>` : ''}
+      <div class="result-grid">
+        ${ir.next_irrigation_date ? `<div class="result-item"><div class="result-icon">📅</div><div class="result-label">Next Irrigation</div><div class="result-value">${escHtml(ir.next_irrigation_date)}</div></div>` : ''}
+        ${ir.water_amount_mm ? `<div class="result-item"><div class="result-icon">💧</div><div class="result-label">Water Amount</div><div class="result-value">${ir.water_amount_mm} mm</div></div>` : ''}
+        ${ir.method ? `<div class="result-item"><div class="result-icon">🚿</div><div class="result-label">Method</div><div class="result-value">${escHtml(ir.method)}</div></div>` : ''}
+        ${ir.frequency ? `<div class="result-item"><div class="result-icon">🔁</div><div class="result-label">Frequency</div><div class="result-value">${escHtml(ir.frequency)}</div></div>` : ''}
+      </div>
+      ${advice.field_actions && advice.field_actions.length ? `<div class="tips-box"><h4>🏃 Field Actions</h4><ul>${advice.field_actions.map(a=>`<li>${escHtml(a)}</li>`).join('')}</ul></div>` : ''}
+      ${advice.risk_alerts && advice.risk_alerts.length ? `<div class="warnings-box"><h4>⚠️ Risk Alerts</h4><ul>${advice.risk_alerts.map(r=>`<li>${escHtml(r)}</li>`).join('')}</ul></div>` : ''}
+      ${advice.forecast_advice ? `<div class="result-summary-box"><strong>📆 5-Day Advice:</strong> ${escHtml(advice.forecast_advice)}</div>` : ''}`;
+  } else {
+    irrDiv.innerHTML = `<div class="prose">${escHtml(advice ? (advice.weather_summary || JSON.stringify(advice)) : 'No advice available').replace(/\n/g,'<br>')}</div>`;
+  }
+
+  if (w.note) {
+    irrDiv.innerHTML += `<div class="note-box">ℹ️ ${escHtml(w.note)}</div>`;
+  }
+
+  document.getElementById('weatherDashboard').style.display = 'flex';
+  document.getElementById('weatherDashboard').style.flexDirection = 'column';
+  document.getElementById('weatherDashboard').style.gap = '1rem';
+  document.getElementById('weatherDashboard').scrollIntoView({ behavior: 'smooth' });
+}
+
+function escHtml(str) {
+  if (typeof str !== 'string') str = String(str || '');
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+{% endblock %}
